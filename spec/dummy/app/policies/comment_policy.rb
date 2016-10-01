@@ -1,7 +1,7 @@
 class CommentPolicy
   class Scope < Struct.new(:user, :scope)
     def resolve
-      raise NotImplementedError
+      scope.all
     end
   end
 
@@ -12,23 +12,33 @@ class CommentPolicy
     @record = record
   end
 
+  # This makes no sense architecturally... a blacklist once again, compared to whitelist
+  # def allow_relationship?(*args)
+  #   require 'pry'
+  #   binding.pry
+  # end
+
+  def allow_relationship_article?(article)
+    article.external_id != 'article-1'
+  end
+
   def index?
-    raise NotImplementedError
+    true
   end
 
   def show?
-    raise NotImplementedError
+    true
   end
 
   def create?
-    raise NotImplementedError
+    true
   end
 
   def update?
-    raise NotImplementedError
+    true
   end
 
   def destroy?
-    raise NotImplementedError
+    true
   end
 end

@@ -112,9 +112,32 @@ module JSONAPI
       end
 
       def authorize_create_resource
-        source_class = @resource_klass._model_class
+        field_data = params[:data]
+        some_data = [:to_one, :to_many].flat_map do |rel_type|
+          field_data[rel_type].flat_map do |relationship_type, value|
+            relationship = resource_klass._relationships[relationship_type.to_sym]
+            related_resources =
+              case value
+              when Hash
+                _key_value = value.fetch(:id)
+                _key_type = value.fetch(:type)
+                warn "Authorizing for polymorphic associations not yet supported"
+                nil
+              when Array
+                relationship.resource_klass.find_by_keys(value, context: @context)
+              else
+                relationship.resource_klass.find_by_key(value, context: @context)
+              end
+            {
+              relationship: relationship,
+              relation_name: relationship.relation_name(context: @context),
+              records: Array.wrap(related_resources).map(&:_model)
+            }
+          end
+        end
+        source_class = resource_klass._model_class
 
-        authorizer.create_resource(source_class, related_models)
+        authorizer.create_resource(source_class, some_data)
       end
 
       def authorize_remove_resource

@@ -107,11 +107,30 @@ module JSONAPI
       # * +related_records+ - An array of records to be associated to the new
       #   record. This will contain the records specified in the
       #   "relationships" key in the request
-      def create_resource(source_class, related_records)
+      def create_resource(source_class, relationships_and_records)
         ::Pundit.authorize(user, source_class, 'create?')
 
-        related_records.each do |record|
-          ::Pundit.authorize(user, record, 'update?')
+        source_policy = ::Pundit.policy!(user, source_class)
+        relationships_and_records.each do |data|
+          # TODO: Use relationship to use same method for parent/child check
+          _relationship = data[:relationship]
+          relation_name = data[:relation_name]
+          records = data[:records]
+          relationship_specific_query = "allow_relationship_#{relation_name}?"
+          if source_policy.respond_to?(relationship_specific_query)
+            records.map do |record|
+              unless source_policy.public_send(relationship_specific_query, record)
+                raise ::Pundit::NotAuthorizedError,
+                      query: relationship_specific_query,
+                      record: record,
+                      policy: source_policy
+              end
+            end
+          else
+            records.map do |record|
+              ::Pundit.authorize(user, record, 'update?')
+            end
+          end
         end
       end
 
