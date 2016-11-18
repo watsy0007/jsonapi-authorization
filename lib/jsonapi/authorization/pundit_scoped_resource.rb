@@ -15,6 +15,13 @@ module JSONAPI
       def records_for(association_name)
         record_or_records = @model.public_send(association_name)
         relationship = self.class._relationships[association_name]
+        if relationship.nil?
+          self.class._relationships.each do |k, v|
+            if v.instance_values['relation_name'] == association_name.to_s
+              relationship = v
+            end
+          end
+        end
 
         case relationship
         when JSONAPI::Relationship::ToOne
